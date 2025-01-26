@@ -1,0 +1,63 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+/* Button container styles */
+.button-container {
+    height: 5vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.get-new-image-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Image container */
+.image-container {
+    height: 95vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Ensure no scrollbars inside the container */
+}
+
+/* Styles for the zoomable image */
+.zoomable-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Ensure the image fits within the container without cropping */
+    cursor: pointer;
+    transition: transform 0.3s ease; /* Smooth zoom effect */
+}
+
+    .zoomable-image.zoomed-in {
+        transform: scale(2); /* Zoom the image to 2x its original size */
+        object-fit: contain; /* Maintain the aspect ratio and avoid cropping */
+    }
+
+/* Optional: Styling for the button to make it look better */
+.get-new-image-button {
+    background-color: #258cfb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+    .get-new-image-button:hover {
+        background-color: #1a72c7;
+    }

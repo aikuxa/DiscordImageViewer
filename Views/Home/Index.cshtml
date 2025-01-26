@@ -1,0 +1,64 @@
+﻿@{
+    var imageUrl = Model as string;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Image Viewer</title>
+</head>
+<body>
+
+    <!-- Button Container (5% of screen height) -->
+    <div class="button-container">
+        <button class="get-new-image-button" id="getNewImageButton">Get New Image</button>
+    </div>
+
+    <!-- Image Container (95% of screen height) -->
+    <div class="image-container">
+        @if (imageUrl != null)
+        {
+            <img src="@imageUrl" alt="Random Image" id="randomImage" class="zoomable-image" />
+        }
+    </div>
+
+    <script>
+        // Function to handle the button click and fetch a new random image
+        document.getElementById("getNewImageButton").addEventListener("click", function() {
+            fetch('/Home/GetNewImage', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.imageUrl) {
+                        document.getElementById("randomImage").src = data.imageUrl;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching new image:", error);
+                });
+        });
+
+        // Zoom functionality: When clicked, zoom the image to its native resolution
+        const image = document.getElementById("randomImage");
+
+        if (image) {
+            image.addEventListener("click", function(event) {
+                // Calculate the click position relative to the image
+                const rect = image.getBoundingClientRect();
+                const offsetX = event.clientX - rect.left; // X coordinate within the image
+                const offsetY = event.clientY - rect.top;  // Y coordinate within the image
+
+                // Zoom the image and set the origin to the clicked point
+                if (image.classList.contains("zoomed-in")) {
+                    image.classList.remove("zoomed-in");
+                } else {
+                    image.classList.add("zoomed-in");
+                    image.style.transformOrigin = `${(offsetX / rect.width) * 100}% ${(offsetY / rect.height) * 100}%`;
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
