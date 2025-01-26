@@ -7,16 +7,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Image Viewer</title>
+    <title>Image Viewer with Timer and Zoom</title>
 </head>
 <body>
-
-    <!-- Button Container (5% of screen height) -->
+    <!-- Timer and Controls -->
     <div class="button-container">
-        <button class="get-new-image-button" id="getNewImageButton">Get New Image</button>
+        <button id="prevImageButton">Previous</button>
+        <button id="getNewImageButton">New Image</button>
+        <span id="timerDisplay">Time Remaining: 1:00</span>
     </div>
 
-    <!-- Image Container (95% of screen height) -->
+    <!-- Interval Buttons -->
+    <div class="interval-buttons">
+        <button class="interval-button" data-minutes="1">1 Min</button>
+        <button class="interval-button" data-minutes="2">2 Min</button>
+        <button class="interval-button" data-minutes="5">5 Min</button>
+        <button class="interval-button" data-minutes="15">15 Min</button>
+        <button class="interval-button" data-minutes="30">30 Min</button>
+        <button class="interval-button" data-minutes="45">45 Min</button>
+        <button class="interval-button" data-minutes="60">60 Min</button>
+    </div>
+
+    <!-- Image Container -->
     <div class="image-container">
         @if (imageUrl != null)
         {
@@ -25,40 +37,101 @@
     </div>
 
     <script>
-        // Function to handle the button click and fetch a new random image
-        document.getElementById("getNewImageButton").addEventListener("click", function() {
+        let imagesHistory = [];
+        let currentImageIndex = 0;
+        let timer;
+        let interval = 1 * 60 * 1000;
+
+        const randomImage = document.getElementById("randomImage");
+        const prevImageButton = document.getElementById("prevImageButton");
+        const getNewImageButton = document.getElementById("getNewImageButton");
+        const timerDisplay = document.getElementById("timerDisplay");
+        const intervalButtons = document.querySelectorAll(".interval-button");
+
+        let zoomLevel = 1; // Current zoom level
+        let offsetX = 0, offsetY = 0; // Pan offset for zoom
+
+        function fetchNewImage() {
             fetch('/Home/GetNewImage', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.imageUrl) {
-                        document.getElementById("randomImage").src = data.imageUrl;
+                    if (data.imageUrl && !imagesHistory.includes(data.imageUrl)) {
+                        imagesHistory.push(data.imageUrl);
+                        currentImageIndex = imagesHistory.length - 1;
+                        randomImage.src = data.imageUrl;
+                        resetZoom();
+                        resetTimer();
+                    } else {
+                        fetchNewImage();
                     }
                 })
-                .catch(error => {
-                    console.error("Error fetching new image:", error);
-                });
+                .catch(error => console.error("Error fetching new image:", error));
+        }
+
+        function displayPreviousImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                randomImage.src = imagesHistory[currentImageIndex];
+                resetZoom();
+                resetTimer();
+            }
+        }
+
+        function resetTimer() {
+            if (timer) clearInterval(timer);
+            startTimer(interval);
+        }
+
+        function startTimer(duration) {
+            let timeRemaining = duration / 1000;
+            timerDisplay.textContent = `Time Remaining: ${Math.floor(timeRemaining / 60)}:${String(timeRemaining % 60).padStart(2, "0")}`;
+
+            timer = setInterval(() => {
+                timeRemaining--;
+                timerDisplay.textContent = `Time Remaining: ${Math.floor(timeRemaining / 60)}:${String(timeRemaining % 60).padStart(2, "0")}`;
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    fetchNewImage();
+                }
+            }, 1000);
+        }
+
+        intervalButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                interval = button.dataset.minutes * 60 * 1000;
+                resetTimer();
+            });
         });
 
-        // Zoom functionality: When clicked, zoom the image to its native resolution
-        const image = document.getElementById("randomImage");
-
-        if (image) {
-            image.addEventListener("click", function(event) {
-                // Calculate the click position relative to the image
-                const rect = image.getBoundingClientRect();
-                const offsetX = event.clientX - rect.left; // X coordinate within the image
-                const offsetY = event.clientY - rect.top;  // Y coordinate within the image
-
-                // Zoom the image and set the origin to the clicked point
-                if (image.classList.contains("zoomed-in")) {
-                    image.classList.remove("zoomed-in");
-                } else {
-                    image.classList.add("zoomed-in");
-                    image.style.transformOrigin = `${(offsetX / rect.width) * 100}% ${(offsetY / rect.height) * 100}%`;
-                }
-            });
+        function resetZoom() {
+            zoomLevel = 1;
+            offsetX = 0;
+            offsetY = 0;
+            randomImage.style.transform = `scale(1) translate(0, 0)`;
         }
-    </script>
 
+        randomImage.addEventListener("click", (event) => {
+            const rect = randomImage.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            if (zoomLevel === 1) {
+                zoomLevel = 2; // Zoom in
+                offsetX = (0.5 - clickX / rect.width) * 100; // Calculate offset based on click position
+                offsetY = (0.5 - clickY / rect.height) * 100;
+            } else {
+                zoomLevel = 1; // Zoom out
+                offsetX = 0;
+                offsetY = 0;
+            }
+
+            randomImage.style.transform = `scale(${zoomLevel}) translate(${offsetX}%, ${offsetY}%)`;
+        });
+
+        getNewImageButton.addEventListener("click", fetchNewImage);
+        prevImageButton.addEventListener("click", displayPreviousImage);
+
+        startTimer(interval);
+    </script>
 </body>
 </html>
